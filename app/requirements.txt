@@ -1,0 +1,4 @@
+strands-agents>=1.0
+bedrock-agentcore>=0.1
+aws-opentelemetry-distro>=0.10
+boto3>=1.42

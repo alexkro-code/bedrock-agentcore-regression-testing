@@ -1,0 +1,147 @@
+{
+  "QueryLanguage": "JSONata",
+  "Comment": "Agent regression testing pipeline: factory → run → evaluate → report → approve → promote",
+  "StartAt": "LoadConfig",
+  "States": {
+    "LoadConfig": {
+      "Type": "Task",
+      "Resource": "${agent_factory_arn}",
+      "Arguments": {
+        "config_s3_key": "{% $states.input.config_s3_key %}"
+      },
+      "Output": {
+        "run_id": "{% $states.result.run_id %}",
+        "config": "{% $states.result.config %}",
+        "runtimes": "{% $states.result.runtimes %}"
+      },
+      "Next": "RunTestCases"
+    },
+    "RunTestCases": {
+      "Type": "Task",
+      "Resource": "${test_runner_arn}",
+      "Arguments": {
+        "run_id": "{% $states.input.run_id %}",
+        "config": "{% $states.input.config %}",
+        "runtimes": "{% $states.input.runtimes %}"
+      },
+      "Output": {
+        "run_id": "{% $states.result.run_id %}",
+        "traces_key": "{% $states.result.traces_key %}",
+        "config": "{% $states.input.config %}",
+        "runtimes": "{% $states.input.runtimes %}"
+      },
+      "Next": "EvaluateParallel"
+    },
+    "EvaluateParallel": {
+      "Type": "Parallel",
+      "Branches": [
+        {
+          "StartAt": "PerAgentEvaluation",
+          "States": {
+            "PerAgentEvaluation": {
+              "Type": "Task",
+              "Resource": "${per_agent_eval_arn}",
+              "Arguments": {
+                "run_id": "{% $states.input.run_id %}",
+                "traces_key": "{% $states.input.traces_key %}",
+                "config": "{% $states.input.config %}"
+              },
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "E2EEvaluation",
+          "States": {
+            "E2EEvaluation": {
+              "Type": "Task",
+              "Resource": "${e2e_eval_arn}",
+              "Arguments": {
+                "run_id": "{% $states.input.run_id %}",
+                "config": "{% $states.input.config %}"
+              },
+              "End": true
+            }
+          }
+        }
+      ],
+      "Output": {
+        "run_id": "{% $states.input.run_id %}",
+        "scores_key": "{% $states.result[0].scores_key %}",
+        "e2e_scores_key": "{% $states.result[1].e2e_scores_key %}",
+        "config": "{% $states.input.config %}",
+        "candidate_config": {
+          "production_runtime_id": "{% $states.input.config.production_runtime_arn %}",
+          "production_endpoint_name": "{% $states.input.config.production_endpoint_name %}",
+          "candidate_version": "{% $states.input.runtimes.candidate.version %}"
+        }
+      },
+      "Next": "GenerateReport"
+    },
+    "GenerateReport": {
+      "Type": "Task",
+      "Resource": "${report_generator_arn}",
+      "Arguments": {
+        "run_id": "{% $states.input.run_id %}",
+        "scores_key": "{% $states.input.scores_key %}",
+        "e2e_scores_key": "{% $states.input.e2e_scores_key %}",
+        "candidate_config": "{% $states.input.candidate_config %}"
+      },
+      "Output": {
+        "run_id": "{% $states.result.run_id %}",
+        "report_s3_url": "{% $states.result.report_s3_url %}",
+        "overall_verdict": "{% $states.result.overall_verdict %}",
+        "candidate_config": "{% $states.result.candidate_config %}"
+      },
+      "Next": "CheckVerdict"
+    },
+    "CheckVerdict": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Condition": "{% $states.input.overall_verdict = 'FAIL' %}",
+          "Next": "ArchiveFailedRun"
+        }
+      ],
+      "Default": "AwaitApproval"
+    },
+    "AwaitApproval": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish.waitForTaskToken",
+      "Arguments": {
+        "TopicArn": "${approval_topic_arn}",
+        "Message": {
+          "report_url": "{% $states.input.report_s3_url %}",
+          "run_id": "{% $states.input.run_id %}",
+          "verdict": "{% $states.input.overall_verdict %}",
+          "task_token": "{% $states.context.Task.Token %}"
+        }
+      },
+      "Output": {
+        "approval_status": "{% $states.result.status %}",
+        "reviewer": "{% $states.result.reviewer %}",
+        "run_id": "{% $states.input.run_id %}",
+        "candidate_config": "{% $states.input.candidate_config %}"
+      },
+      "Next": "PromoteCandidate"
+    },
+    "PromoteCandidate": {
+      "Type": "Task",
+      "Resource": "${promoter_arn}",
+      "Arguments": {
+        "run_id": "{% $states.input.run_id %}",
+        "candidate_config": "{% $states.input.candidate_config %}"
+      },
+      "End": true
+    },
+    "ArchiveFailedRun": {
+      "Type": "Pass",
+      "Output": {
+        "run_id": "{% $states.input.run_id %}",
+        "status": "archived",
+        "reason": "Regression detected - promotion blocked"
+      },
+      "End": true
+    }
+  }
+}

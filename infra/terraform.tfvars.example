@@ -1,0 +1,14 @@
+aws_region               = "us-east-1"
+project_name             = "agent-regression"
+baseline_model           = "anthropic.claude-sonnet-4-5"
+candidate_model          = "anthropic.claude-sonnet-4-6"
+judge_model              = "anthropic.claude-opus-4-6"
+production_runtime_arn   = "arn:aws:bedrock-agentcore:us-east-1:123456789012:agent-runtime/agent-swarm-prod"
+production_endpoint_name = "production"
+runtime_role_arn         = "arn:aws:iam::123456789012:role/agent-swarm-runtime-role"
+approval_email           = "team@example.com"
+e2e_threshold            = 0.85
+per_agent_floor          = 0.80
+max_regression_delta     = 0.10
+runs_per_config          = 3
+log_retention_days       = 30

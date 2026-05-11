@@ -1,0 +1,21 @@
+{
+  "run_id": "regression-2026-05-11-001",
+  "datasets": {
+    "e2e": "s3://BUCKET_NAME/datasets/e2e-cases.jsonl",
+    "per_agent": "s3://BUCKET_NAME/datasets/per-agent-cases.jsonl"
+  },
+  "image_uri": "123456789012.dkr.ecr.us-east-1.amazonaws.com/agent-regression-agent-swarm:v1",
+  "production_runtime_arn": "arn:aws:bedrock-agentcore:us-east-1:123456789012:agent-runtime/agent-swarm-prod",
+  "production_endpoint_name": "production",
+  "runtime_role_arn": "arn:aws:iam::123456789012:role/agent-swarm-runtime-role",
+  "baseline_model": "anthropic.claude-sonnet-4-5",
+  "candidate_model": "anthropic.claude-sonnet-4-6",
+  "judge_model": "anthropic.claude-opus-4-6",
+  "thresholds": {
+    "e2e_correctness": 0.85,
+    "per_agent_floor": 0.80,
+    "max_regression_delta": 0.10
+  },
+  "runs_per_config": 3,
+  "output_prefix": "s3://BUCKET_NAME/results/"
+}
