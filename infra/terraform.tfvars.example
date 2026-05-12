@@ -12,3 +12,18 @@ per_agent_floor          = 0.80
 max_regression_delta     = 0.10
 runs_per_config          = 3
 log_retention_days       = 30
+
+# VPC Configuration (optional)
+# Set vpc_enabled = true to deploy Lambda functions inside a VPC
+vpc_enabled = false
+create_vpc  = false
+# vpc_cidr  = "10.0.0.0/16"              # Only when create_vpc = true
+# existing_vpc_id     = "vpc-0abc123"     # Only when create_vpc = false
+# existing_subnet_ids = ["subnet-aaa", "subnet-bbb"]
+
+# Resource tags
+tags = {
+  Project   = "bedrock-agentcore-regression-testing"
+  ManagedBy = "terraform"
+  CostCenter = "bedrock-regression-testing"
+}

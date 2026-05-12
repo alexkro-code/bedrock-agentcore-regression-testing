@@ -73,5 +73,13 @@ resource "aws_lambda_function" "functions" {
     }
   }
 
+  dynamic "vpc_config" {
+    for_each = var.vpc_enabled ? [1] : []
+    content {
+      subnet_ids         = local.subnet_ids
+      security_group_ids = [aws_security_group.lambda[0].id]
+    }
+  }
+
   depends_on = [aws_cloudwatch_log_group.lambda]
 }

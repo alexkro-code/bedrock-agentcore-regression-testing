@@ -85,6 +85,36 @@ variable "log_retention_days" {
   default     = 30
 }
 
+variable "vpc_enabled" {
+  description = "Whether to deploy Lambda functions inside a VPC"
+  type        = bool
+  default     = false
+}
+
+variable "create_vpc" {
+  description = "Create a new VPC (true) or use an existing one (false). Only applies when vpc_enabled = true"
+  type        = bool
+  default     = false
+}
+
+variable "vpc_cidr" {
+  description = "CIDR block for the new VPC. Only applies when create_vpc = true"
+  type        = string
+  default     = "10.0.0.0/16"
+}
+
+variable "existing_vpc_id" {
+  description = "ID of an existing VPC. Only applies when vpc_enabled = true and create_vpc = false"
+  type        = string
+  default     = ""
+}
+
+variable "existing_subnet_ids" {
+  description = "Subnet IDs in the existing VPC. Only applies when vpc_enabled = true and create_vpc = false"
+  type        = list(string)
+  default     = []
+}
+
 variable "tags" {
   description = "Tags applied to all resources"
   type        = map(string)

@@ -1,7 +1,10 @@
-.PHONY: init plan deploy destroy test lint clean build-image
+.PHONY: setup init plan deploy destroy test lint clean build-image
 
 INFRA_DIR := infra
 APP_DIR := app
+
+setup:
+	bash setup.sh
 
 init:
 	cd $(INFRA_DIR) && terraform init

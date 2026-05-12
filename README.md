@@ -91,22 +91,24 @@ S3 config/ upload
 
 ## Installation
 
-### Step 1: Configure
+### Step 1: Clone and run setup
 
 ```bash
 git clone https://github.com/aws-samples/bedrock-agentcore-regression-testing.git
 cd bedrock-agentcore-regression-testing
 
-cp infra/terraform.tfvars.example infra/terraform.tfvars
+bash setup.sh
 ```
 
-Edit `infra/terraform.tfvars` — at minimum set these required values:
+The interactive setup asks for:
 
-| Variable | What to set |
-|----------|-------------|
-| `production_runtime_arn` | ARN of your existing AgentCore Runtime |
-| `runtime_role_arn` | IAM role ARN the Runtime uses for execution |
-| `approval_email` | Email address for human-in-the-loop notifications |
+1. **AWS account** — confirms your current CLI identity and account ID
+2. **Region** — deployment region (default: `us-east-1`)
+3. **VPC** — no VPC, create a new VPC (with CIDR selection), or use an existing VPC (lists available VPCs)
+4. **Resource tag** — mandatory tag for cost tracking (default: `CostCenter = bedrock-regression-testing`)
+5. **Pipeline settings** — production Runtime ARN, Runtime IAM role, approval email
+
+The script generates `infra/terraform.tfvars`. You can also edit this file manually — see `infra/terraform.tfvars.example` for all options.
 
 ### Step 2: Deploy infrastructure
 
@@ -116,7 +118,7 @@ terraform init
 terraform apply
 ```
 
-This creates: S3 bucket, 6 Lambda functions, Step Functions state machine, EventBridge rule, SNS topic, ECR repository, IAM roles (least-privilege per function), and CloudWatch log groups.
+This creates: S3 bucket, 6 Lambda functions, Step Functions state machine, EventBridge rule, SNS topic, ECR repository, IAM roles (least-privilege per function), CloudWatch log groups, and optionally VPC resources.
 
 For OpenTofu: replace `terraform` with `tofu`.
 
@@ -149,7 +151,7 @@ Check the Step Functions console for the running execution. When it reaches the 
 
 ## Configuration Reference
 
-Edit `infra/terraform.tfvars`:
+Edit `infra/terraform.tfvars` (or re-run `bash setup.sh`):
 
 | Variable | Description | Default |
 |----------|-------------|---------|
@@ -166,6 +168,12 @@ Edit `infra/terraform.tfvars`:
 | `max_regression_delta` | Max tolerated regression | `0.10` |
 | `runs_per_config` | Repetitions for confidence | `3` |
 | `log_retention_days` | CloudWatch log retention | `30` |
+| `vpc_enabled` | Deploy Lambdas inside a VPC | `false` |
+| `create_vpc` | Create a new VPC (vs. use existing) | `false` |
+| `vpc_cidr` | CIDR for new VPC | `10.0.0.0/16` |
+| `existing_vpc_id` | VPC ID when using existing VPC | `""` |
+| `existing_subnet_ids` | Subnet IDs in existing VPC | `[]` |
+| `tags` | Tags applied to all resources | `Project`, `ManagedBy` |
 
 ## Monitoring the Pipeline
 
@@ -227,6 +235,7 @@ A `FAIL` verdict means either:
 ## Project Structure
 
 ```
+├── setup.sh                        # Interactive setup (generates terraform.tfvars)
 ├── infra/                          # Terraform/OpenTofu infrastructure
 │   ├── main.tf                         # Provider, data sources
 │   ├── variables.tf                    # All configurable inputs
@@ -235,6 +244,7 @@ A `FAIL` verdict means either:
 │   ├── s3.tf                           # Pipeline bucket with encryption
 │   ├── lambda.tf                       # 6 Lambda functions
 │   ├── iam.tf                          # Least-privilege roles
+│   ├── vpc.tf                          # Optional VPC, subnets, endpoints
 │   ├── stepfunctions.tf                # State machine
 │   ├── eventbridge.tf                  # S3 trigger rule
 │   ├── sns.tf                          # Approval notifications
