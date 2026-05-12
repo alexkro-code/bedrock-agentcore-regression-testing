@@ -78,11 +78,13 @@ S3 config/ upload
 
 ## Prerequisites
 
-- AWS account with Amazon Bedrock model access in a US region
-- Model access enabled for:
+- AWS account with Amazon Bedrock model access
+- Model access enabled for three models of your choice (baseline, candidate, and judge). Defaults:
   - Baseline: `anthropic.claude-sonnet-4-5`
   - Candidate: `anthropic.claude-sonnet-4-6`
   - Judge: `anthropic.claude-opus-4-6`
+  
+  You can use any models available in your region — configure via `baseline_model`, `candidate_model`, and `judge_model` in `terraform.tfvars`.
 - [Terraform](https://www.terraform.io/downloads) >= 1.5 or [OpenTofu](https://opentofu.org/docs/intro/install/) >= 1.6
 - AWS CLI v2 configured with credentials
 - Docker (for building the agent container image)
@@ -160,9 +162,9 @@ Edit `infra/terraform.tfvars` (or re-run `bash setup.sh`):
 | `production_runtime_arn` | Your production Runtime ARN | (required) |
 | `runtime_role_arn` | Runtime execution IAM role | (required) |
 | `approval_email` | SNS notification recipient | (required) |
-| `baseline_model` | Model ID for baseline | `anthropic.claude-sonnet-4-5` |
-| `candidate_model` | Model ID for candidate | `anthropic.claude-sonnet-4-6` |
-| `judge_model` | Model ID for LLM judge | `anthropic.claude-opus-4-6` |
+| `baseline_model` | Model ID for baseline (any Bedrock model) | `anthropic.claude-sonnet-4-5` |
+| `candidate_model` | Model ID for candidate (any Bedrock model) | `anthropic.claude-sonnet-4-6` |
+| `judge_model` | Model ID for LLM judge (any Bedrock model) | `anthropic.claude-opus-4-6` |
 | `e2e_threshold` | Minimum E2E correctness | `0.85` |
 | `per_agent_floor` | Minimum per-agent score | `0.80` |
 | `max_regression_delta` | Max tolerated regression | `0.10` |

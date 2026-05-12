@@ -1,5 +1,6 @@
 aws_region               = "us-east-1"
 project_name             = "agent-regression"
+# Models are configurable — use any Bedrock-supported model IDs
 baseline_model           = "anthropic.claude-sonnet-4-5"
 candidate_model          = "anthropic.claude-sonnet-4-6"
 judge_model              = "anthropic.claude-opus-4-6"
