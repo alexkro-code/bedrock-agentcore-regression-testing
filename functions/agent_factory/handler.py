@@ -46,7 +46,7 @@ def build_runtime_variants(
         if mixed:
             env.update(mixed)
         response = _AGENTCORE_CTRL.create_agent_runtime(
-            agentRuntimeName=f"agent-swarm-{run_id}-{variant}",
+            agentRuntimeName=f"agentswarm_{run_id}_{variant}",
             agentRuntimeArtifact={
                 "containerConfiguration": {"containerUri": image_uri}
             },
