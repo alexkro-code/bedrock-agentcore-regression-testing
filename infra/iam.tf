@@ -60,9 +60,9 @@ resource "aws_iam_role_policy" "agent_factory" {
       {
         Effect = "Allow"
         Action = [
-          "bedrock-agentcore:CreateAgentRuntime",
-          "bedrock-agentcore:GetAgentRuntime",
-          "bedrock-agentcore:DeleteAgentRuntime",
+          "bedrock-agentcore-control:CreateAgentRuntime",
+          "bedrock-agentcore-control:GetAgentRuntime",
+          "bedrock-agentcore-control:DeleteAgentRuntime",
         ]
         Resource = "arn:aws:bedrock-agentcore:${local.region}:${local.account_id}:agent-runtime/*"
       },
@@ -141,7 +141,7 @@ resource "aws_iam_role_policy" "promoter" {
     Version = "2012-10-17"
     Statement = [{
       Effect   = "Allow"
-      Action   = "bedrock-agentcore:UpdateAgentRuntimeEndpoint"
+      Action   = "bedrock-agentcore-control:UpdateAgentRuntimeEndpoint"
       Resource = var.production_runtime_arn
     }]
   })
