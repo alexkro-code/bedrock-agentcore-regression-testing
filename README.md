@@ -173,6 +173,8 @@ Edit `infra/terraform.tfvars` (or re-run `bash setup.sh`):
 | `vpc_cidr` | CIDR for new VPC | `10.0.0.0/16` |
 | `existing_vpc_id` | VPC ID when using existing VPC | `""` |
 | `existing_subnet_ids` | Subnet IDs in existing VPC | `[]` |
+| `image_uri` | ECR image URI (set by `build_and_push.sh`) | `""` (auto) |
+| `production_endpoint_name` | Name of the production endpoint | `"production"` |
 | `tags` | Tags applied to all resources | `Project`, `ManagedBy` |
 
 ## Monitoring the Pipeline
