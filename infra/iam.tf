@@ -90,8 +90,11 @@ resource "aws_iam_role_policy" "agent_factory" {
         Resource = "*"
       },
       {
-        Effect   = "Allow"
-        Action   = "iam:PassRole"
+        Effect = "Allow"
+        Action = "iam:PassRole"
+        # nosemgrep: no-iam-resource-exposure -- scoped to a single role ARN
+        # (var.runtime_role_arn); required so AgentCore can assume the runtime
+        # execution role. Not a wildcard or public-exposure grant.
         Resource = var.runtime_role_arn
       },
     ]
@@ -149,8 +152,11 @@ resource "aws_iam_role_policy" "e2e_evaluator" {
         Resource = "arn:aws:bedrock:${local.region}:${local.account_id}:evaluation-job/*"
       },
       {
-        Effect   = "Allow"
-        Action   = "iam:PassRole"
+        Effect = "Allow"
+        Action = "iam:PassRole"
+        # nosemgrep: no-iam-resource-exposure -- scoped to this function's own
+        # role ARN; required so the Bedrock evaluation job can assume it. Not a
+        # wildcard or public-exposure grant.
         Resource = aws_iam_role.lambda["e2e-evaluator"].arn
       },
     ]
@@ -251,6 +257,10 @@ resource "aws_iam_role_policy" "sfn_logs" {
     Version = "2012-10-17"
     Statement = [{
       Effect = "Allow"
+      # nosemgrep: no-iam-resource-exposure -- these CloudWatch Logs
+      # *-LogDelivery / resource-policy actions do not support resource-level
+      # permissions in IAM (AWS requires "*"), and Step Functions logging
+      # configuration mandates exactly this set. Not a public-exposure grant.
       Action = [
         "logs:CreateLogDelivery",
         "logs:GetLogDelivery",

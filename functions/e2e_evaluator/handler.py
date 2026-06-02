@@ -65,7 +65,7 @@ def wait_for_job(job_arn, timeout_s=3600):
             raise RuntimeError(
                 f"Evaluation job {job_arn} ended with status: {status}"
             )
-        time.sleep(30)
+        time.sleep(30)  # nosemgrep: arbitrary-sleep -- intentional poll interval while waiting for the Bedrock evaluation job to finish
     raise RuntimeError(f"Evaluation job {job_arn} timed out after {timeout_s}s")
 
 

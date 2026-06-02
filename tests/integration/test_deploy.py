@@ -7,7 +7,7 @@ Requires AWS credentials with read access to deployed resources.
 Usage: pytest tests/integration/ -v --run-integration
 """
 import json
-import subprocess
+import subprocess  # nosec B404 -- needed to read `terraform output`; invoked with a fixed arg list, no shell, no untrusted input
 
 import pytest
 
@@ -17,7 +17,7 @@ def pytest_configure(config):
 
 
 def run_tf_output(name):
-    result = subprocess.run(
+    result = subprocess.run(  # nosec B603,B607 -- fixed 'terraform' arg list, no shell, no untrusted input; `name` is a hardcoded output key from this test
         ["terraform", "output", "-raw", name],
         capture_output=True,
         text=True,

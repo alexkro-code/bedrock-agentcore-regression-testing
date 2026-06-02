@@ -60,7 +60,7 @@ def fetch_session_spans(session_id, log_group="aws/spans", timeout_s=120):
             ]
         if r["status"] in {"Failed", "Cancelled", "Timeout"}:
             raise RuntimeError(f"Span query {query_id} status {r['status']}")
-        time.sleep(2)
+        time.sleep(2)  # nosemgrep: arbitrary-sleep -- intentional poll backoff between CloudWatch Logs Insights query-result checks
     raise RuntimeError(f"Span query for {session_id} timed out")
 
 
@@ -114,7 +114,7 @@ def lambda_handler(event, context):
             output, session_id = invoke_swarm(
                 runtime_info["arn"], variant, case, run_id
             )
-            time.sleep(10)
+            time.sleep(10)  # nosemgrep: arbitrary-sleep -- intentional wait for OTel spans to flush to CloudWatch before querying them
             spans = fetch_session_spans(session_id)
             per_agent = extract_per_agent_traces(spans)
 

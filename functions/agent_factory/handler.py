@@ -24,7 +24,7 @@ def _wait_ready(runtime_id: str, timeout_s: int = 300) -> None:
             return
         if status in {"CREATE_FAILED", "UPDATE_FAILED"}:
             raise RuntimeError(f"Runtime {runtime_id} failed: {status}")
-        time.sleep(5)
+        time.sleep(5)  # nosemgrep: arbitrary-sleep -- intentional poll interval while waiting for the AgentCore runtime to reach READY
     raise RuntimeError(f"Runtime {runtime_id} not READY in {timeout_s}s")
 
 
