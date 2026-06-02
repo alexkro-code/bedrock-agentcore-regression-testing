@@ -51,6 +51,19 @@ resource "aws_kms_key" "pipeline" {
         ]
         Resource = "*"
       },
+      {
+        # Required for S3 server-access-log delivery into the CMK-encrypted
+        # access-log bucket (per AWS docs: the logging service principal needs
+        # GenerateDataKey + Decrypt on the destination bucket's KMS key).
+        Sid       = "AllowS3ServerAccessLogging"
+        Effect    = "Allow"
+        Principal = { Service = "logging.s3.amazonaws.com" }
+        Action = [
+          "kms:Decrypt",
+          "kms:GenerateDataKey",
+        ]
+        Resource = "*"
+      },
     ]
   })
 

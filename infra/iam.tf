@@ -91,10 +91,8 @@ resource "aws_iam_role_policy" "agent_factory" {
       },
       {
         Effect = "Allow"
-        Action = "iam:PassRole"
-        # nosemgrep: no-iam-resource-exposure -- scoped to a single role ARN
-        # (var.runtime_role_arn); required so AgentCore can assume the runtime
-        # execution role. Not a wildcard or public-exposure grant.
+        # nosemgrep: no-iam-resource-exposure -- PassRole scoped to a single role ARN (var.runtime_role_arn); required so AgentCore can assume the runtime execution role. Not a wildcard / public-exposure grant.
+        Action   = "iam:PassRole"
         Resource = var.runtime_role_arn
       },
     ]
@@ -153,10 +151,8 @@ resource "aws_iam_role_policy" "e2e_evaluator" {
       },
       {
         Effect = "Allow"
-        Action = "iam:PassRole"
-        # nosemgrep: no-iam-resource-exposure -- scoped to this function's own
-        # role ARN; required so the Bedrock evaluation job can assume it. Not a
-        # wildcard or public-exposure grant.
+        # nosemgrep: no-iam-resource-exposure -- PassRole scoped to this function's own role ARN; required so the Bedrock evaluation job can assume it. Not a wildcard / public-exposure grant.
+        Action   = "iam:PassRole"
         Resource = aws_iam_role.lambda["e2e-evaluator"].arn
       },
     ]
@@ -257,17 +253,14 @@ resource "aws_iam_role_policy" "sfn_logs" {
     Version = "2012-10-17"
     Statement = [{
       Effect = "Allow"
-      # nosemgrep: no-iam-resource-exposure -- these CloudWatch Logs
-      # *-LogDelivery / resource-policy actions do not support resource-level
-      # permissions in IAM (AWS requires "*"), and Step Functions logging
-      # configuration mandates exactly this set. Not a public-exposure grant.
-      Action = [
+      # nosemgrep: no-iam-resource-exposure -- CloudWatch Logs *-LogDelivery / resource-policy actions cannot be resource-scoped in IAM (AWS requires "*"), and Step Functions logging configuration mandates exactly this set. Not a public-exposure grant.
+      Action = [ # nosemgrep: no-iam-resource-exposure
         "logs:CreateLogDelivery",
         "logs:GetLogDelivery",
         "logs:UpdateLogDelivery",
         "logs:DeleteLogDelivery",
         "logs:ListLogDeliveries",
-        "logs:PutResourcePolicy",
+        "logs:PutResourcePolicy", # nosemgrep: no-iam-resource-exposure
         "logs:DescribeResourcePolicies",
         "logs:DescribeLogGroups",
       ]

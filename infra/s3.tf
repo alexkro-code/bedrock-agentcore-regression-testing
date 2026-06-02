@@ -1,3 +1,4 @@
+# nosemgrep: aws-s3-bucket-versioning-not-enabled -- false positive: versioning IS enabled via aws_s3_bucket_versioning.pipeline below
 resource "aws_s3_bucket" "pipeline" {
   bucket_prefix = "${local.name_prefix}-"
   force_destroy = false
@@ -6,8 +7,6 @@ resource "aws_s3_bucket" "pipeline" {
   # ephemeral, single-region demo pipeline (buckets hold transient run artifacts).
 }
 
-# nosemgrep: aws-s3-bucket-versioning-not-enabled -- false positive: versioning IS
-# enabled below; the rule misreads the separate aws_s3_bucket_versioning resource.
 resource "aws_s3_bucket_versioning" "pipeline" {
   bucket = aws_s3_bucket.pipeline.id
   versioning_configuration {
@@ -76,9 +75,11 @@ resource "aws_s3_bucket_notification" "config_trigger" {
 
 # --- Access logging ---
 # Server access logs for the pipeline bucket (CKV_AWS_18). The log bucket is a
-# self-contained target: SSE-S3 (S3 log delivery cannot write to a CMK-encrypted
-# bucket), versioned, lifecycle-expired, and fully private.
+# self-contained target: CMK-encrypted (the KMS key policy grants the
+# logging.s3.amazonaws.com principal GenerateDataKey+Decrypt per AWS docs),
+# versioned, lifecycle-expired, ACLs disabled, and fully private.
 
+# nosemgrep: aws-s3-bucket-versioning-not-enabled -- false positive: versioning IS enabled via aws_s3_bucket_versioning.access_logs below
 resource "aws_s3_bucket" "access_logs" {
   bucket_prefix = "${local.name_prefix}-logs-"
   force_destroy = false
@@ -87,12 +88,16 @@ resource "aws_s3_bucket" "access_logs" {
   # ephemeral demo; this bucket only holds short-lived access logs.
   # checkov:skip=CKV_AWS_18: This is itself the access-log target bucket;
   # enabling access logging on it would create a recursive logging loop.
+  # checkov:skip=CKV2_AWS_62: Event notifications are not useful on a log-sink
+  # bucket — it has no downstream consumer; notifications would be noise.
 }
 
+# Disable ACLs (BucketOwnerEnforced). Log delivery is granted via the bucket
+# policy below, which AWS recommends over the legacy log-delivery-group ACL.
 resource "aws_s3_bucket_ownership_controls" "access_logs" {
   bucket = aws_s3_bucket.access_logs.id
   rule {
-    object_ownership = "BucketOwnerPreferred"
+    object_ownership = "BucketOwnerEnforced"
   }
 }
 
@@ -107,7 +112,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "access_logs" {
   bucket = aws_s3_bucket.access_logs.id
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.pipeline.arn
     }
     bucket_key_enabled = true
   }
@@ -132,6 +138,21 @@ resource "aws_s3_bucket_lifecycle_configuration" "access_logs" {
 
     expiration {
       days = 90
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = 30
+    }
+  }
+
+  rule {
+    id     = "abort-incomplete-uploads"
+    status = "Enabled"
+
+    filter {}
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
     }
   }
 }
