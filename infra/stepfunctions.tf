@@ -19,5 +19,9 @@ resource "aws_sfn_state_machine" "pipeline" {
     level                  = "ERROR"
   }
 
+  tracing_configuration {
+    enabled = true
+  }
+
   depends_on = [aws_cloudwatch_log_group.state_machine]
 }

@@ -23,6 +23,75 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
+# Lock down the VPC's default security group so it permits no traffic
+# (CKV2_AWS_12). Declaring the resource with no ingress/egress rules causes
+# Terraform to revoke every rule AWS creates by default.
+resource "aws_default_security_group" "pipeline" {
+  count = var.create_vpc ? 1 : 0
+
+  vpc_id = aws_vpc.pipeline[0].id
+
+  tags = {
+    Name = "${local.name_prefix}-default-sg-restricted"
+  }
+}
+
+# --- VPC flow logs (CKV2_AWS_11) ---
+
+resource "aws_cloudwatch_log_group" "vpc_flow" {
+  count = var.create_vpc ? 1 : 0
+
+  name              = "/aws/vpc/${local.name_prefix}-flow-logs"
+  retention_in_days = var.log_retention_days
+  kms_key_id        = aws_kms_key.pipeline.arn
+}
+
+data "aws_iam_policy_document" "vpc_flow_assume" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["vpc-flow-logs.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "vpc_flow" {
+  count = var.create_vpc ? 1 : 0
+
+  name               = "${local.name_prefix}-vpc-flow-role"
+  assume_role_policy = data.aws_iam_policy_document.vpc_flow_assume.json
+}
+
+resource "aws_iam_role_policy" "vpc_flow" {
+  count = var.create_vpc ? 1 : 0
+
+  name = "flow-log-delivery"
+  role = aws_iam_role.vpc_flow[0].id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "logs:DescribeLogGroups",
+        "logs:DescribeLogStreams",
+      ]
+      Resource = "${aws_cloudwatch_log_group.vpc_flow[0].arn}:*"
+    }]
+  })
+}
+
+resource "aws_flow_log" "pipeline" {
+  count = var.create_vpc ? 1 : 0
+
+  vpc_id          = aws_vpc.pipeline[0].id
+  traffic_type    = "ALL"
+  iam_role_arn    = aws_iam_role.vpc_flow[0].arn
+  log_destination = aws_cloudwatch_log_group.vpc_flow[0].arn
+}
+
 resource "aws_subnet" "private" {
   count = var.create_vpc ? 2 : 0
 

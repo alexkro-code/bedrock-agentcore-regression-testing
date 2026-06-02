@@ -204,10 +204,42 @@ resource "aws_iam_role_policy" "sfn_sns" {
   role = aws_iam_role.step_functions.id
   policy = jsonencode({
     Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "sns:Publish"
+        Resource = aws_sns_topic.approvals.arn
+      },
+      {
+        # Publishing to the CMK-encrypted approval topic requires the publisher
+        # to generate/decrypt the SNS data key.
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt",
+          "kms:GenerateDataKey*",
+        ]
+        Resource = aws_kms_key.pipeline.arn
+      },
+    ]
+  })
+}
+
+# X-Ray tracing on the state machine requires the execution role to emit and
+# sample trace segments. X-Ray actions are not resource-scoped.
+resource "aws_iam_role_policy" "sfn_xray" {
+  name = "xray-tracing"
+  role = aws_iam_role.step_functions.id
+  policy = jsonencode({
+    Version = "2012-10-17"
     Statement = [{
-      Effect   = "Allow"
-      Action   = "sns:Publish"
-      Resource = aws_sns_topic.approvals.arn
+      Effect = "Allow"
+      Action = [
+        "xray:PutTraceSegments",
+        "xray:PutTelemetryRecords",
+        "xray:GetSamplingRules",
+        "xray:GetSamplingTargets",
+      ]
+      Resource = "*"
     }]
   })
 }
