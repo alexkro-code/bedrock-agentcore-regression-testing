@@ -169,7 +169,8 @@ Edit `infra/terraform.tfvars` (or re-run `bash setup.sh`):
 | `per_agent_floor` | Minimum per-agent score | `0.80` |
 | `max_regression_delta` | Max tolerated regression | `0.10` |
 | `runs_per_config` | Repetitions for confidence | `3` |
-| `log_retention_days` | CloudWatch log retention | `30` |
+| `log_retention_days` | CloudWatch log retention | `365` |
+| `reserved_concurrency` | Reserved concurrent executions per Lambda | `5` |
 | `vpc_enabled` | Deploy Lambdas inside a VPC | `false` |
 | `create_vpc` | Create a new VPC (vs. use existing) | `false` |
 | `vpc_cidr` | CIDR for new VPC | `10.0.0.0/16` |
@@ -245,7 +246,8 @@ A `FAIL` verdict means either:
 │   ├── variables.tf                    # All configurable inputs
 │   ├── outputs.tf                      # Bucket name, state machine ARN, etc.
 │   ├── versions.tf                     # Provider version constraints
-│   ├── s3.tf                           # Pipeline bucket with encryption
+│   ├── kms.tf                          # Customer-managed key (S3/Logs/ECR/SNS/Lambda env)
+│   ├── s3.tf                           # Pipeline + access-log buckets (CMK, lifecycle)
 │   ├── lambda.tf                       # 6 Lambda functions
 │   ├── iam.tf                          # Least-privilege roles
 │   ├── vpc.tf                          # Optional VPC, subnets, endpoints
@@ -331,9 +333,12 @@ aws s3 sync "s3://$BUCKET" ./backup-data/
 ## Security
 
 - All Lambda functions use least-privilege IAM roles scoped to their specific actions
-- S3 bucket has default KMS encryption and public access blocked
+- A customer-managed KMS key (`kms.tf`, rotation enabled) encrypts the S3 bucket,
+  Lambda environment variables, CloudWatch log groups, ECR images, and the SNS topic
+- The S3 bucket blocks all public access and writes server access logs to a dedicated log bucket
+- X-Ray tracing is enabled on the Lambda functions and the Step Functions state machine
 - API keys and credentials belong in AWS Secrets Manager (not environment variables)
-- Container images are scanned on push via ECR image scanning
+- Container images are scanned on push via ECR image scanning and run as a non-root user
 - The pipeline does not store or log model responses beyond S3 (encrypted at rest)
 
 See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for reporting security issues.

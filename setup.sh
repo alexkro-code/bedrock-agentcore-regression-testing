@@ -221,7 +221,8 @@ e2e_threshold            = 0.85
 per_agent_floor          = 0.80
 max_regression_delta     = 0.10
 runs_per_config          = 3
-log_retention_days       = 30
+log_retention_days       = 365
+reserved_concurrency     = 5
 
 # VPC Configuration
 vpc_enabled = $VPC_ENABLED
