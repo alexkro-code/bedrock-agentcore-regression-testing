@@ -80,9 +80,15 @@ variable "runs_per_config" {
 }
 
 variable "log_retention_days" {
-  description = "CloudWatch Logs retention period in days"
+  description = "CloudWatch Logs retention period in days (defaults to 365 to satisfy the 1-year retention baseline)"
   type        = number
-  default     = 30
+  default     = 365
+}
+
+variable "reserved_concurrency" {
+  description = "Reserved concurrent executions per Lambda function (caps blast radius; -1 disables the reservation)"
+  type        = number
+  default     = 5
 }
 
 variable "vpc_enabled" {

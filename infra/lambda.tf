@@ -50,12 +50,30 @@ data "archive_file" "functions" {
 resource "aws_lambda_function" "functions" {
   for_each = local.functions
 
+  # checkov:skip=CKV_AWS_116: A dead-letter queue does not apply — these
+  # functions are invoked synchronously by Step Functions, which captures and
+  # retries failures via the state machine, not via an async DLQ.
+  # checkov:skip=CKV_AWS_272: Code-signing is out of scope for this demo; the
+  # deployment packages are built locally from this repo by `terraform apply`.
+
   function_name = "${local.name_prefix}-${each.key}"
   role          = aws_iam_role.lambda[each.key].arn
   handler       = each.value.handler
   runtime       = "python3.13"
   timeout       = each.value.timeout
   memory_size   = each.value.memory_size
+
+  # Cap blast radius / runaway concurrency (CKV_AWS_115). Each function gets the
+  # same modest reservation; tune via var.reserved_concurrency.
+  reserved_concurrent_executions = var.reserved_concurrency
+
+  # Encrypt environment variables with the customer-managed key (CKV_AWS_173).
+  kms_key_arn = aws_kms_key.pipeline.arn
+
+  # End-to-end tracing for the pipeline (CKV_AWS_50).
+  tracing_config {
+    mode = "Active"
+  }
 
   filename         = data.archive_file.functions[each.key].output_path
   source_code_hash = data.archive_file.functions[each.key].output_base64sha256

@@ -36,19 +36,42 @@ resource "aws_iam_role_policy" "lambda_s3" {
   role = aws_iam_role.lambda[each.key].id
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Action = [
-        "s3:GetObject",
-        "s3:PutObject",
-        "s3:ListBucket",
-      ]
-      Resource = [
-        aws_s3_bucket.pipeline.arn,
-        "${aws_s3_bucket.pipeline.arn}/*",
-      ]
-    }]
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:ListBucket",
+        ]
+        Resource = [
+          aws_s3_bucket.pipeline.arn,
+          "${aws_s3_bucket.pipeline.arn}/*",
+        ]
+      },
+      {
+        # Required to read/write objects in the CMK-encrypted pipeline bucket
+        # (S3 calls KMS on the caller's behalf) and to decrypt the function's
+        # own CMK-encrypted environment variables.
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt",
+          "kms:GenerateDataKey",
+          "kms:DescribeKey",
+        ]
+        Resource = aws_kms_key.pipeline.arn
+      },
+    ]
   })
+}
+
+# Active X-Ray tracing on the Lambda functions requires the execution role to be
+# able to emit trace segments.
+resource "aws_iam_role_policy_attachment" "lambda_xray" {
+  for_each = local.functions
+
+  role       = aws_iam_role.lambda[each.key].name
+  policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
 }
 
 resource "aws_iam_role_policy" "agent_factory" {
