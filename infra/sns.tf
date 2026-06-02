@@ -1,5 +1,6 @@
 resource "aws_sns_topic" "approvals" {
-  name = "${local.name_prefix}-approvals"
+  name              = "${local.name_prefix}-approvals"
+  kms_master_key_id = aws_kms_key.pipeline.arn
 }
 
 resource "aws_sns_topic_subscription" "approval_email" {

@@ -10,9 +10,11 @@ resource "aws_cloudwatch_log_group" "lambda" {
 
   name              = "/aws/lambda/${local.name_prefix}-${each.key}"
   retention_in_days = var.log_retention_days
+  kms_key_id        = aws_kms_key.pipeline.arn
 }
 
 resource "aws_cloudwatch_log_group" "state_machine" {
   name              = "/aws/states/${local.name_prefix}-pipeline"
   retention_in_days = var.log_retention_days
+  kms_key_id        = aws_kms_key.pipeline.arn
 }

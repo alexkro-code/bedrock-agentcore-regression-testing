@@ -8,7 +8,8 @@ resource "aws_ecr_repository" "agent" {
   }
 
   encryption_configuration {
-    encryption_type = "AES256"
+    encryption_type = "KMS"
+    kms_key         = aws_kms_key.pipeline.arn
   }
 }
 
