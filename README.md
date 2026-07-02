@@ -4,6 +4,17 @@ This repository provides a one-click deployable regression testing pipeline for 
 
 Deploy the pipeline with Terraform or OpenTofu, upload a configuration file, and the pipeline automatically compares your agents across two model versions — catching regressions before they reach production.
 
+## What this sample does
+
+When you upgrade the foundation model behind a multi-agent system, an individual agent can quietly regress — worse routing, a dropped tool call, weaker retrieval — even when the final answer still looks acceptable. This sample turns that risk into an automated, repeatable check:
+
+- **Stands up two identical copies** of your agent system from the same container image — one on your current (baseline) model, one on the candidate model.
+- **Replays your test cases** against both and captures per-agent OpenTelemetry traces from CloudWatch.
+- **Scores on two tiers** — end-to-end output quality (Amazon Bedrock evaluation jobs) *and* per-agent behavior (fast deterministic checks that escalate to an LLM judge only on failure, saving 30–50% of judge cost).
+- **Produces a comparison report** with per-agent deltas, confidence intervals, and a single PASS/FAIL verdict, then pauses for human approval before promoting the new model to production.
+
+You get a one-command regression gate to run before every model upgrade. It ships with a sample financial-analysis agent swarm that you replace with your own agents and rubrics.
+
 ## Architecture
 
 ![Architecture diagram](docs/architecture.png)
@@ -96,8 +107,8 @@ S3 config/ upload
 ### Step 1: Clone and run setup
 
 ```bash
-git clone https://github.com/aws-samples/bedrock-agentcore-regression-testing.git
-cd bedrock-agentcore-regression-testing
+git clone https://github.com/alexkro-code/blog3-agentcore-model-upgrade.git
+cd blog3-agentcore-model-upgrade
 
 bash setup.sh
 ```
