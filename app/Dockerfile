@@ -1,10 +1,10 @@
-# Pinning FROM to a sha256 digest requires resolving it from the live registry
-# at build time; this demo intentionally tracks the 3.13-slim tag for
-# readability. For reproducible production builds, pin to a digest:
+# Base image pinned to an immutable sha256 digest for reproducible builds and
+# supply-chain safety; the 3.13-slim tag is retained for human readability. This
+# is the multi-arch manifest-list digest, so it resolves on both amd64 and arm64.
+# To refresh after a base-image update, re-resolve the digest:
 #   docker pull public.ecr.aws/docker/library/python:3.13-slim
-#   FROM public.ecr.aws/docker/library/python:3.13-slim@sha256:<hash>
-# nosemgrep: dockerfile-source-not-pinned
-FROM public.ecr.aws/docker/library/python:3.13-slim
+#   docker inspect --format='{{index .RepoDigests 0}}' public.ecr.aws/docker/library/python:3.13-slim
+FROM public.ecr.aws/docker/library/python:3.13-slim@sha256:6771159cd4fa5d9bba1258caf0b82e6b73458c694d178ad97c5e925c2d0e1a91
 
 WORKDIR /app
 

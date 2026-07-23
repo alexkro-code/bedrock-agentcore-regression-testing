@@ -17,6 +17,13 @@ _S3 = boto3.client("s3")
 
 BUCKET = os.environ["BUCKET_NAME"]
 
+# Agent outputs and OTel spans can contain the test-case inputs and model
+# responses. This sample uses synthetic data, so it stores them verbatim to make
+# regressions inspectable. For production or real data, set REDACT_PAYLOADS=true
+# to keep only the scoring-relevant fields (per-agent traces, token counts) out
+# of S3, or route the raw payloads to an access-controlled, encrypted store.
+REDACT_PAYLOADS = os.environ.get("REDACT_PAYLOADS", "false").lower() == "true"
+
 
 def invoke_swarm(runtime_arn, variant, test_case, run_id) -> tuple[str, str]:
     session_id = f"{run_id}-{test_case['task_id']}-{variant}"
@@ -119,9 +126,12 @@ def lambda_handler(event, context):
             per_agent = extract_per_agent_traces(spans)
 
             case_result[variant] = {
-                "output": output,
+                # Raw output + spans are omitted when REDACT_PAYLOADS is set so
+                # potentially sensitive inputs/responses never land in S3; the
+                # per-agent traces used for scoring are always retained.
+                "output": "[redacted]" if REDACT_PAYLOADS else output,
                 "session_id": session_id,
-                "spans": spans,
+                "spans": "[redacted]" if REDACT_PAYLOADS else spans,
                 "per_agent_traces": per_agent,
             }
         results.append(case_result)

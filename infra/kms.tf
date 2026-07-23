@@ -26,8 +26,12 @@ resource "aws_kms_key" "pipeline" {
         Sid       = "EnableRootAccount"
         Effect    = "Allow"
         Principal = { AWS = "arn:aws:iam::${local.account_id}:root" }
-        Action    = "kms:*"
-        Resource  = "*"
+        # PRODUCTION: replace "kms:*" with the specific KMS actions your key
+        # administrators and users need (e.g. kms:Create*/Describe*/Enable*/List*/
+        # Put*/Update*/Revoke*/Disable*/Get*/Delete*/ScheduleKeyDeletion for admins;
+        # Encrypt/Decrypt/ReEncrypt*/GenerateDataKey*/DescribeKey for users).
+        Action   = "kms:*"
+        Resource = "*"
       },
       {
         Sid       = "AllowCloudWatchLogs"
