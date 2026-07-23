@@ -81,13 +81,18 @@ resource "aws_iam_role_policy" "agent_factory" {
     Version = "2012-10-17"
     Statement = [
       {
+        # CreateAgentRuntime is an account/region-level create action, so it is
+        # scoped to this account's runtime namespace rather than a specific ARN
+        # (the runtime does not exist yet at create time). Get/Delete are scoped
+        # to the same namespace because the factory manages the ephemeral test
+        # runtimes it creates here by their account-assigned IDs.
         Effect = "Allow"
         Action = [
           "bedrock-agentcore:CreateAgentRuntime",
           "bedrock-agentcore:GetAgentRuntime",
           "bedrock-agentcore:DeleteAgentRuntime",
         ]
-        Resource = "*"
+        Resource = "arn:aws:bedrock-agentcore:${local.region}:${local.account_id}:runtime/*"
       },
       {
         Effect = "Allow"
@@ -106,9 +111,18 @@ resource "aws_iam_role_policy" "test_runner" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect   = "Allow"
-        Action   = "bedrock-agentcore:InvokeAgentRuntime"
-        Resource = "*"
+        # Scoped to AgentCore runtimes (and their endpoints) in THIS account and
+        # region — the factory creates the baseline/candidate test runtimes here
+        # with account-assigned IDs, so the pipeline cannot know their ARNs ahead
+        # of apply. This still prevents invoking runtimes in other accounts. To
+        # tighten further, replace the wildcard with the specific runtime ARNs
+        # once they are known (e.g. via a second-stage policy).
+        Effect = "Allow"
+        Action = "bedrock-agentcore:InvokeAgentRuntime"
+        Resource = [
+          "arn:aws:bedrock-agentcore:${local.region}:${local.account_id}:runtime/*",
+          "arn:aws:bedrock-agentcore:${local.region}:${local.account_id}:runtime/*/endpoint/*",
+        ]
       },
       {
         Effect = "Allow"
@@ -128,6 +142,10 @@ resource "aws_iam_role_policy" "per_agent_evaluator" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
+      # bedrock-agentcore:Evaluate is an account-level control-plane action: the
+      # AWS service-authorization reference defines no resource type or condition
+      # keys for it, so IAM cannot scope it to a specific ARN — "*" is required
+      # by the API. It grants only the ability to run the managed evaluator.
       Effect   = "Allow"
       Action   = "bedrock-agentcore:Evaluate"
       Resource = "*"

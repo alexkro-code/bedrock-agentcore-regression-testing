@@ -4,7 +4,7 @@ This repository provides a one-click deployable regression testing pipeline for 
 
 Deploy the pipeline with Terraform or OpenTofu, upload a configuration file, and the pipeline automatically compares your agents across two model versions — catching regressions before they reach production.
 
-> **This is sample code for demonstration and learning, not a production-ready deployment.** It provisions security-relevant infrastructure (IAM roles, a KMS key, S3 bucket policies, and a VPC). Review and adapt the IAM scoping, encryption, network configuration, and cost controls to your own security and compliance requirements before deploying to a production account. The sample is provided as-is under the MIT-0 License and is not covered by AWS Support.
+> **This is sample code for demonstration and learning. Do not deploy it to a production account as-is.** It provisions security-relevant infrastructure (IAM roles, a KMS key, S3 bucket policies, and a VPC). Review and adapt the IAM scoping, encryption, network configuration, and cost controls to your own security and compliance requirements first. The sample is provided as-is under the MIT-0 License and is not covered by AWS Support.
 
 ## What this sample does
 
@@ -12,7 +12,7 @@ When you upgrade the foundation model behind a multi-agent system, an individual
 
 - **Stands up two identical copies** of your agent system from the same container image — one on your current (baseline) model, one on the candidate model.
 - **Replays your test cases** against both and captures per-agent OpenTelemetry traces from CloudWatch.
-- **Scores on two tiers** — end-to-end output quality (Amazon Bedrock evaluation jobs) *and* per-agent behavior (fast deterministic checks that escalate to an LLM judge only on failure, saving roughly 30–50% of judge cost in the sample workload; see [COST_MODEL.md](docs/COST_MODEL.md) for the assumptions).
+- **Scores on two tiers** — end-to-end output quality (Amazon Bedrock evaluation jobs) *and* per-agent behavior (fast deterministic checks that escalate to an LLM judge only on failure). This saves roughly 30–50% of judge cost on the sample workload, based on the escalation rate and per-tier pricing documented in [COST_MODEL.md](docs/COST_MODEL.md).
 - **Produces a comparison report** with per-agent deltas, confidence intervals, and a single PASS/FAIL verdict, then pauses for human approval before promoting the new model to production.
 
 You get a one-command regression gate to run before every model upgrade. It ships with a sample financial-analysis agent swarm that you replace with your own agents and rubrics.
