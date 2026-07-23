@@ -4,13 +4,15 @@ This repository provides a one-click deployable regression testing pipeline for 
 
 Deploy the pipeline with Terraform or OpenTofu, upload a configuration file, and the pipeline automatically compares your agents across two model versions — catching regressions before they reach production.
 
+> **This is sample code for demonstration and learning, not a production-ready deployment.** It provisions security-relevant infrastructure (IAM roles, a KMS key, S3 bucket policies, and a VPC). Review and adapt the IAM scoping, encryption, network configuration, and cost controls to your own security and compliance requirements before deploying to a production account. The sample is provided as-is under the MIT-0 License and is not covered by AWS Support.
+
 ## What this sample does
 
 When you upgrade the foundation model behind a multi-agent system, an individual agent can quietly regress — worse routing, a dropped tool call, weaker retrieval — even when the final answer still looks acceptable. This sample turns that risk into an automated, repeatable check:
 
 - **Stands up two identical copies** of your agent system from the same container image — one on your current (baseline) model, one on the candidate model.
 - **Replays your test cases** against both and captures per-agent OpenTelemetry traces from CloudWatch.
-- **Scores on two tiers** — end-to-end output quality (Amazon Bedrock evaluation jobs) *and* per-agent behavior (fast deterministic checks that escalate to an LLM judge only on failure, saving 30–50% of judge cost).
+- **Scores on two tiers** — end-to-end output quality (Amazon Bedrock evaluation jobs) *and* per-agent behavior (fast deterministic checks that escalate to an LLM judge only on failure, saving roughly 30–50% of judge cost in the sample workload; see [COST_MODEL.md](docs/COST_MODEL.md) for the assumptions).
 - **Produces a comparison report** with per-agent deltas, confidence intervals, and a single PASS/FAIL verdict, then pauses for human approval before promoting the new model to production.
 
 You get a one-command regression gate to run before every model upgrade. It ships with a sample financial-analysis agent swarm that you replace with your own agents and rubrics.
@@ -59,7 +61,7 @@ The pipeline orchestrates eight components through AWS Step Functions:
 
 ### Deterministic checks per agent role
 
-The Per-Agent Evaluator runs role-specific checks before calling the LLM judge. This saves 30-50% of judge costs:
+The Per-Agent Evaluator runs role-specific checks before calling the LLM judge. On the sample workload this saves roughly 30–50% of judge costs, based on the escalation rate and per-tier pricing documented in [COST_MODEL.md](docs/COST_MODEL.md):
 
 | Agent Role | Check | What it verifies |
 |-----------|-------|-----------------|
@@ -301,7 +303,7 @@ A `FAIL` verdict means either:
 
 ```bash
 # Unit tests — no AWS credentials needed
-pip install pytest
+pip install pytest==9.1.1
 python -m pytest tests/unit/ -v
 
 # Integration tests — requires deployed infrastructure
@@ -353,6 +355,18 @@ aws s3 sync "s3://$BUCKET" ./backup-data/
 - The pipeline does not store or log model responses beyond S3 (encrypted at rest)
 
 See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for reporting security issues.
+
+## Responsible AI
+
+This sample evaluates AI systems, so it applies the same responsible-AI practices it helps you enforce:
+
+- **Human oversight.** The pipeline never promotes a model version on its own. The Step Functions workflow pauses at an `AwaitApproval` step (`sns:publish.waitForTaskToken`) and waits for a human to approve or reject before the candidate model reaches production.
+- **Guardrails.** The per-agent evaluator tracks Amazon Bedrock Guardrails interventions from the agent traces (`guardrail.intervene` events) and scores whether the compliance agent behaved as expected, so a model change that weakens guardrail behavior is caught as a regression.
+- **Synthetic data only.** The bundled datasets use fictitious entities (the AWS "AnyCompany" placeholder) and invented figures — no real customer data, PII, or confidential information. Replace them with your own representative-but-sanitized cases.
+- **Model-neutral scoring.** Rubrics score behavior (routing, tool accuracy, faithfulness, synthesis, compliance), not a specific model's phrasing, so the same evaluation applies fairly across model versions.
+- **Transparency.** Every run produces a comparison report with per-agent deltas and confidence intervals ([COST_MODEL.md](docs/COST_MODEL.md) documents the cost assumptions), so reviewers can see *why* a verdict was reached before approving a promotion.
+
+When you adapt this sample to your own agents, extend these practices to your domain — for example, add fairness or bias checks relevant to your use case as additional deterministic rubrics.
 
 ## License
 

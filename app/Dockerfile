@@ -9,10 +9,10 @@ FROM public.ecr.aws/docker/library/python:3.13-slim
 WORKDIR /app
 
 RUN pip install --no-cache-dir \
-    "strands-agents>=1.0" \
-    "bedrock-agentcore>=0.1" \
-    "aws-opentelemetry-distro>=0.10" \
-    "boto3>=1.42"
+    "strands-agents==1.48.0" \
+    "bedrock-agentcore==1.18.1" \
+    "aws-opentelemetry-distro==0.18.0" \
+    "boto3==1.43.54"
 
 COPY supervisor.py .
 

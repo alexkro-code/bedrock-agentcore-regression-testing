@@ -17,6 +17,12 @@ resource "aws_kms_key" "pipeline" {
     Version = "2012-10-17"
     Statement = [
       {
+        # This is the AWS default key policy statement: it does NOT grant access
+        # by itself — it delegates authorization for this key to IAM policies in
+        # the account root. For production, scope this down to explicit key
+        # administrators and users (dedicated kms:* admin principals + a separate
+        # least-privilege usage statement) instead of delegating the full "kms:*"
+        # action set to every IAM principal in the account.
         Sid       = "EnableRootAccount"
         Effect    = "Allow"
         Principal = { AWS = "arn:aws:iam::${local.account_id}:root" }
