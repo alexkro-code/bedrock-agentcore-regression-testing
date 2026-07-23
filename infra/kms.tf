@@ -10,27 +10,62 @@ resource "aws_kms_key" "pipeline" {
   enable_key_rotation     = true
   deletion_window_in_days = 7
 
-  # Key policy delegates IAM-principal access to account IAM policies (the AWS
-  # default root statement) and additionally grants the CloudWatch Logs and SNS
-  # service principals the operations they perform on the key on your behalf.
+  # Access is delegated to account IAM policies (the AWS "trust account
+  # identities" model), so the Lambda execution roles grant themselves key
+  # usage via their own IAM policies (see iam.tf). Rather than the single
+  # "kms:*" default statement, that delegation is split into an explicit
+  # key-administration statement and a key-usage statement — both still scoped
+  # to the account root principal, so no principal is locked out and no
+  # cross-stack cyclic dependency is introduced, but the key policy no longer
+  # grants the full "kms:*" action set. The service-principal statements below
+  # grant CloudWatch Logs, SNS, and S3 server-access-logging only the specific
+  # operations they perform on the key on your behalf.
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        # This is the AWS default key policy statement: it does NOT grant access
-        # by itself — it delegates authorization for this key to IAM policies in
-        # the account root. For production, scope this down to explicit key
-        # administrators and users (dedicated kms:* admin principals + a separate
-        # least-privilege usage statement) instead of delegating the full "kms:*"
-        # action set to every IAM principal in the account.
-        Sid       = "EnableRootAccount"
+        # Key administration — the management actions from the AWS default
+        # "Allow access for Key Administrators" statement. Scope the principal
+        # to a dedicated key-admin role for production.
+        Sid       = "KeyAdministration"
         Effect    = "Allow"
         Principal = { AWS = "arn:aws:iam::${local.account_id}:root" }
-        # PRODUCTION: replace "kms:*" with the specific KMS actions your key
-        # administrators and users need (e.g. kms:Create*/Describe*/Enable*/List*/
-        # Put*/Update*/Revoke*/Disable*/Get*/Delete*/ScheduleKeyDeletion for admins;
-        # Encrypt/Decrypt/ReEncrypt*/GenerateDataKey*/DescribeKey for users).
-        Action   = "kms:*"
+        Action = [
+          "kms:Create*",
+          "kms:Describe*",
+          "kms:Enable*",
+          "kms:List*",
+          "kms:Put*",
+          "kms:Update*",
+          "kms:Revoke*",
+          "kms:Disable*",
+          "kms:Get*",
+          "kms:Delete*",
+          "kms:TagResource",
+          "kms:UntagResource",
+          "kms:ScheduleKeyDeletion",
+          "kms:CancelKeyDeletion",
+        ]
+        Resource = "*"
+      },
+      {
+        # Key usage — the cryptographic operations pipeline principals need.
+        # Delegated to account IAM policies (the Lambda roles in iam.tf grant
+        # themselves the subset they use); scope to specific role ARNs for
+        # production.
+        Sid       = "KeyUsage"
+        Effect    = "Allow"
+        Principal = { AWS = "arn:aws:iam::${local.account_id}:root" }
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey",
+          "kms:CreateGrant",
+          "kms:ListGrants",
+          "kms:RevokeGrant",
+        ]
         Resource = "*"
       },
       {
